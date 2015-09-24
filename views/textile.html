@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame
+    Remove this if you use the .htaccess -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+    <title>64 Stitches interactive demo</title>
+    <meta name="description" content="knitting pattern generation language" />
+    <meta name="author" content="Mariko Kosaka" />
+    <script src="https://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript" charset="utf-8"></script>
+    <link href='http://fonts.googleapis.com/css?family=Averia+Serif+Libre' rel='stylesheet' type='text/css'>
+
+    <style type="text/css">
+      *{
+        padding:0;
+        margin:0;
+        font-family: 'Averia Serif Libre'
+      }
+      #pattern{
+
+        background-color:#f3f3f3;
+        padding-top:15px;
+        padding-bottom:10px;
+        text-align: center;
+      }
+    </style>
+    <script src="http://electro.mechanical.computer:{{port}}/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+    <div id="pattern">
+      <canvas id="row" width='400' height='50'></canvas>
+      <canvas id="set" width='80' height='80' hidden></canvas>
+    </div>
+    <div height="800">
+      &nbsp;
+    </div>
+    <script type="text/javascript">
+      var pattern = [0,0,0,0,0,0,0,0];
+      var reference = [
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0],
+      [0,0,0,0,0,0,0,0]
+      ];
+      var lastpin ;
+      var pdiv = $('#pattern');
+      var refcanvas = document.getElementById('set');
+      var canvas = document.getElementById('row');
+
+      // connect to local server
+      var socket = io.connect('http://electro.mechanical.computer:{{port}}');
+
+      // socket.ip connections check
+      socket.on('connect', function () {
+        console.log('connected!')
+      });
+
+      socket.on('disconnect', function (client) {
+        console.log('dis-connected!')
+      });
+
+      socket.on('hold', function (data) {
+        lastpin = data.pin;
+        console.log(lastpin)
+        drawcanvas(data.pin);
+      });
+
+      socket.on('release', function (data) {
+        if(data.pin ===lastpin){
+          addToPattern();
+          pattern.map(function(pin,posi){
+            drawRect(posi*50, 0, 'white', canvas,50,50)
+          })
+        }
+      })
+
+      function drawRect(x, y, color, el, w, h) {
+        if (el.getContext) {
+          var ctx = el.getContext('2d');
+          ctx.fillStyle = color;
+          ctx.fillRect(x,y,w||10,h||10);
+        }
+      }
+
+      function drawcanvas(pin) {
+        console.log('canv called')
+        pattern[pin] = 1;
+        console.log(pattern)
+        pattern.map(function(pin,posi){
+          if(pin===1){
+            drawRect(posi*50, 0, 'black', canvas,50,50)
+          }else{
+            drawRect(50, 0,'white', canvas,50,50)}
+        })
+      };
+
+      function addToPattern() {
+        reference.pop();
+        reference.unshift(pattern.splice(0,8));
+        socket.emit('draw', {pattern:reference})
+        pattern =[0,0,0,0,0,0,0,0]
+        lastpin = null;
+        reference.map(function(r,y){
+          r.map(function(s,x){
+            if(s===1){
+              drawRect(x*10, y*10, 'black', refcanvas)
+            }else{
+              drawRect(x*10,y*10,'white', refcanvas)
+            }
+          })
+        })
+        var data = refcanvas.toDataURL("image/png", 1.0);
+        document.body.style.background = 'url('+data+') repeat right top';
+      }
+
+    </script>
+  </body>
+</html>

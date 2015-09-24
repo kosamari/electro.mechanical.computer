@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame
+    Remove this if you use the .htaccess -->
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+
+    <title>punchcard ASCII interactive demo</title>
+    <meta name="description" content="knitting pattern generation language" />
+    <meta name="author" content="Mariko Kosaka" />
+    <script src="https://code.jquery.com/jquery-1.11.3.min.js" type="text/javascript" charset="utf-8"></script>
+    <link href='http://fonts.googleapis.com/css?family=Averia+Serif+Libre' rel='stylesheet' type='text/css'>
+
+
+    <style type="text/css">
+      *{
+        padding:0;
+        margin:0;
+        font-family: 'Averia Serif Libre';
+        text-align:center;
+      }
+
+      #binary{
+        font-size: 90px;
+        font-family: monospace;
+      }
+      #letter{
+        font-family: monospace;
+        font-size: 180px;
+      }
+    </style>
+    <script src="http://electro.mechanical.computer:{{port}}/socket.io/socket.io.js"></script>
+    </head>
+    <body>
+    <br><br><br><br>
+    <h1>Binary is : </h1><br>
+    <span id="binary">00000000</span><br><br><br>
+    <h1>ASCII letter is : </h1><br>
+    <span id="letter"></span>
+    <script type="text/javascript">
+      var pattern = [0,0,0,0,0,0,0,0];
+      var lastpin ;
+
+      // connect to local server
+      var socket = io.connect('http://electro.mechanical.computer:{{port}}');
+
+      // socket.ip connections check
+      socket.on('connect', function () {
+        console.log('connected!')
+      });
+
+      socket.on('disconnect', function (client) {
+        console.log('disconnected!')
+      });
+
+      socket.on('hold', function (data) {
+        lastpin = data.pin;
+        pattern[data.pin] = 1;
+        bintext = pattern.join('')
+        $('#binary').html(pattern.join(''))
+        text = String.fromCharCode(parseInt(bintext, 2))
+        console.log(text)
+        $('#letter').html(text)
+
+      });
+
+      socket.on('release', function (data) {
+        if(data.pin ===lastpin){
+          pattern = [0,0,0,0,0,0,0,0]
+          $('#binary').html(pattern.join(''))
+          $('#letter').html('')
+        }
+      })
+
+    </script>
+  </body>
+</html>
